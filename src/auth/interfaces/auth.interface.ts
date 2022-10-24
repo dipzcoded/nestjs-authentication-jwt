@@ -3,6 +3,7 @@ import { Tokens } from '../types';
 
 export interface AuthInterface {
   signUpLocal(dto: SignUpDto): Promise<Tokens>;
+  signUpAsSuperAdmin(dto: SignUpDto): Promise<Tokens>;
   signInLocal(dto: SignInDto): Promise<Tokens>;
   logout(userId: number): Promise<void>;
   newRefreshTokens(userId: number, refreshToken: string): Promise<Tokens>;

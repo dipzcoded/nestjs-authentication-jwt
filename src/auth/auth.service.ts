@@ -54,6 +54,50 @@ export class AuthService implements AuthInterface {
     await this.updateUserRtHash(newUser.id, genTokens.refresh_token);
     return genTokens;
   }
+
+  async signUpAsSuperAdmin(dto: SignUpDto): Promise<Tokens> {
+    const body = dto;
+
+    // getting users that are super admins
+    const isThereSuperAdmin = await this.prismaService.user.findMany({
+      where: {
+        isSuperAdmin: true,
+      },
+    });
+
+    // checking if there is more than one super admins in the database
+    if (isThereSuperAdmin.length) {
+      throw new Error('there can only be one super admin');
+    }
+
+    // find user by email
+    const user = await this.prismaService.user.findUnique({
+      where: { email: body.email },
+    });
+
+    if (user) {
+      throw new ForbiddenException('user already exists');
+    }
+
+    // hash user password
+    const hashPassword = await argon2.hash(body.password);
+
+    const newUser = await this.prismaService.user.create({
+      data: {
+        email: body.email,
+        password: hashPassword,
+        isSuperAdmin: true,
+      },
+    });
+
+    // generate tokens
+    const genTokens = await this.getTokens(newUser.id, newUser.email);
+
+    // update user refresh token
+    await this.updateUserRtHash(newUser.id, genTokens.refresh_token);
+    return genTokens;
+  }
+
   async signInLocal(sigInDto: SignInDto): Promise<Tokens> {
     const body = sigInDto;
 

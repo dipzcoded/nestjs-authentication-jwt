@@ -11,7 +11,7 @@ import { GetUser, Public } from './decorators';
 import { SignInDto, SignUpDto } from './dtos';
 import { JwtAuthGuard, RefreshJwtAuthGuard } from './guards';
 
-@Controller('api/auth')
+@Controller('api/v1/auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
@@ -23,13 +23,19 @@ export class AuthController {
   }
 
   @Public()
+  @HttpCode(HttpStatus.CREATED)
+  @Post('/signup/superadmin')
+  signUpAsSuperAdmin(@Body() dto: SignUpDto) {
+    return this.authService.signUpAsSuperAdmin(dto);
+  }
+
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Post('/signin')
   signInLocal(@Body() signInDto: SignInDto) {
     return this.authService.signInLocal(signInDto);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post('/logout')
   @HttpCode(HttpStatus.OK)
   logout(@GetUser('sub') userId: number) {
