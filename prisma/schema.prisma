@@ -13,12 +13,15 @@ datasource db {
 
 model User {
   id Int @id @default(autoincrement())
+  name String
+  userName String @unique
   email String @unique
   password String
   hashRt String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   isSuperAdmin Boolean @default(false)
+  isActive Boolean @default(true)
   posts Post[]
   roles UserRole[]
 
@@ -27,7 +30,7 @@ model User {
 
 model Role {
   id Int @id @default(autoincrement())
-  name String
+  name String @unique
   userRoles UserRole[]
 
   @@map("roles")
@@ -37,8 +40,8 @@ model UserRole {
   id Int @id @default(autoincrement())
   userId Int
   roleId Int
-  user User @relation(fields: [userId], references: [id])
-  role Role @relation(fields: [roleId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@map("userrole")
 }
@@ -46,9 +49,10 @@ model UserRole {
 model Post {
   id Int @id @default(autoincrement())
   userId Int
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   title String
   description String
+  isActive Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

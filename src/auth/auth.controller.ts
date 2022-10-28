@@ -9,7 +9,7 @@ import {
 import { AuthService } from './auth.service';
 import { GetUser, Public } from './decorators';
 import { SignInDto, SignUpDto } from './dtos';
-import { JwtAuthGuard, RefreshJwtAuthGuard } from './guards';
+import { RefreshJwtAuthGuard } from './guards';
 
 @Controller('api/v1/auth')
 export class AuthController {
@@ -18,8 +18,8 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.CREATED)
   @Post('/signup')
-  signUpLocal(@Body() signUpDto: SignUpDto) {
-    return this.authService.signUpLocal(signUpDto);
+  signUpAsUser(@Body() signUpDto: SignUpDto) {
+    return this.authService.signUpAsUser(signUpDto);
   }
 
   @Public()

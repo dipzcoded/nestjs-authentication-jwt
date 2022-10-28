@@ -19,7 +19,7 @@ export class AuthService implements AuthInterface {
     private configService: ConfigService,
   ) {}
 
-  async signUpLocal(signUpDto: SignUpDto): Promise<Tokens> {
+  async signUpAsUser(signUpDto: SignUpDto): Promise<Tokens> {
     // get req.body
     const body = signUpDto;
 
@@ -27,32 +27,54 @@ export class AuthService implements AuthInterface {
     const hashPassword = await argon2.hash(body.password);
 
     // check if user exists
-    const userFound = await this.prismaService.user.findUnique({
+    const userFound = await this.prismaService.user.findMany({
       where: {
-        email: body.email,
+        OR: [
+          {
+            userName: body.userName,
+          },
+          {
+            email: body.email,
+          },
+        ],
       },
     });
 
-    if (userFound) {
+    if (userFound.length) {
       throw new BadRequestException(
-        'user already exist with the provided email sent',
+        'user already exist with the provided details',
       );
     }
 
-    // creating the user
-    const newUser = await this.prismaService.user.create({
-      data: {
-        email: body.email,
-        password: hashPassword,
-      },
+    const userRole = await this.prismaService.role.findUnique({
+      where: { name: 'User' },
     });
 
-    // return access and refresh token
-    const genTokens = await this.getTokens(newUser.id, newUser.email);
+    if (!userRole) {
+      throw new ForbiddenException('no user role created! by super admin');
+    } else {
+      // creating the user
+      const newUser = await this.prismaService.user.create({
+        data: {
+          name: body.name,
+          email: body.email,
+          password: hashPassword,
+          userName: body.userName,
+          roles: {
+            create: {
+              roleId: userRole.id,
+            },
+          },
+        },
+      });
 
-    // update the new created user refreshToken
-    await this.updateUserRtHash(newUser.id, genTokens.refresh_token);
-    return genTokens;
+      // return access and refresh token
+      const genTokens = await this.getTokens(newUser.id, newUser.email);
+
+      // update the new created user refreshToken
+      await this.updateUserRtHash(newUser.id, genTokens.refresh_token);
+      return genTokens;
+    }
   }
 
   async signUpAsSuperAdmin(dto: SignUpDto): Promise<Tokens> {
@@ -67,15 +89,24 @@ export class AuthService implements AuthInterface {
 
     // checking if there is more than one super admins in the database
     if (isThereSuperAdmin.length) {
-      throw new Error('there can only be one super admin');
+      throw new ForbiddenException('There can only be one super admin');
     }
 
     // find user by email
-    const user = await this.prismaService.user.findUnique({
-      where: { email: body.email },
+    const user = await this.prismaService.user.findMany({
+      where: {
+        OR: [
+          {
+            userName: body.userName,
+          },
+          {
+            email: body.email,
+          },
+        ],
+      },
     });
 
-    if (user) {
+    if (user.length) {
       throw new ForbiddenException('user already exists');
     }
 
@@ -84,6 +115,8 @@ export class AuthService implements AuthInterface {
 
     const newUser = await this.prismaService.user.create({
       data: {
+        name: body.name,
+        userName: body.userName,
         email: body.email,
         password: hashPassword,
         isSuperAdmin: true,
